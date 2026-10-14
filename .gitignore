@@ -1,0 +1,14 @@
+# Local working notes (kept private for now)
+CONTEXT.md
+docs/superpowers/
+
+# Dependencies
+node_modules/
+
+# Local agent state
+.crypto-agent/
+
+# Local secrets
+.env
+.env.*
+!.env.example
