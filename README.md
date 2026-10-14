@@ -2,7 +2,7 @@
 
 An autonomous agent experiment that discovers new Solana tokens, investigates opportunities, and refines its decisions through paper trading on live market data.
 
-> **Status:** pre-implementation. No application code exists yet. The project runs in paper mode only: it holds no wallet, signs no transactions, and uses no real capital.
+> **Status:** Milestone 1 in progress. The CLI can initialize and inspect a local paper portfolio in fixture mode. The project runs in paper mode only: it holds no wallet, signs no transactions, and uses no real capital.
 
 ## Goals
 
@@ -57,7 +57,30 @@ TypeScript on Node.js 24, local SQLite through `node:sqlite`, `node:test`, and p
 
 ## Getting started
 
-There is nothing to run yet. Setup and commands will be documented here when Milestone 1 lands.
+Requirements: Node.js 24.19 or newer within major version 24, and pnpm 11.
+
+```sh
+pnpm install
+pnpm test        # run the test suite
+pnpm typecheck   # strict TypeScript check
+```
+
+The CLI runs in **fixture mode**: it makes no network requests, reads no API keys, and never trades real funds.
+
+```sh
+pnpm start init     # create the paper portfolio with 1000 paper USDC, if missing
+pnpm start status   # print the portfolio as JSON (read-only)
+pnpm start --help
+```
+
+Monetary values are integer units of the asset's smallest denomination, serialized as decimal strings. USDC uses 6 decimal places, so `1000000000` units equal 1000 USDC.
+
+### Local state
+
+- State lives in `.crypto-agent/` by default and is ignored by git. Use `--data-dir <path>` to run an independent experiment in another directory.
+- Running `init` again never resets an existing balance.
+- `status` only reads state; it fails if the portfolio has not been initialized.
+- A writer holds `<data-dir>/state.lock` while it runs, and a second writer is rejected. If a process crashed and left the lock behind, confirm that no writer is still running before deleting the lock by hand: the lock file records the owner's PID, and `ps -p <pid>` should show no matching `node` process. The CLI never removes a lock it does not own; automatic crash recovery is planned for a later milestone.
 
 ## Contributing
 
