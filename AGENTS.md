@@ -7,6 +7,12 @@
 - Preserve original external content when storing evidence or quoting a source; write the surrounding explanations and labels in English.
 - This convention applies to project artifacts. Follow the user's language in conversation unless they request otherwise.
 
+## Architecture document
+
+- Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing code structure.
+- Update it in the same change whenever you add or move a module or layer, change a contract in `src/paper/types.ts`, add a schema migration, add an unfilled reason code, or change an invariant it lists. Add notable decisions to its decision log and refresh its "Last updated" line.
+- Describe only what the code does; mark anything not yet implemented as planned.
+
 ## Skill chaining
 
 - When using `finishing-a-development-branch`, invoke `finish-with-review-pr` immediately after Step 1 confirms that tests pass and before presenting the integration menu. Its Part A must resolve the repository's architecture-audit findings first.

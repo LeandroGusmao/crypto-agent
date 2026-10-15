@@ -111,4 +111,4 @@ Internally, and in `--json` output, monetary values are integer units of the ass
 
 ## Contributing
 
-Read [AGENTS.md](AGENTS.md) for project conventions. English is the default language for code, comments, CLI output, logs, reports, documentation, and commit messages.
+Read [AGENTS.md](AGENTS.md) for project conventions and [ARCHITECTURE.md](ARCHITECTURE.md) for the code layout, invariants, and data model. English is the default language for code, comments, CLI output, logs, reports, documentation, and commit messages.
