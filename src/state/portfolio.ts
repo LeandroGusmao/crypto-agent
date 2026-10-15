@@ -11,13 +11,16 @@ function canonicalUnits(value: string): string {
 }
 
 // Seeds the paper portfolio once; later calls never reset an existing balance.
-export function initializePaperPortfolio(state: LocalState, initialUnits: string): void {
+export function initializePaperPortfolio(
+  state: LocalState, initialUnits: string,
+): { created: boolean } {
   const units = canonicalUnits(initialUnits);
-  runInTransaction(state.db, () => {
-    state.db.prepare(
+  return runInTransaction(state.db, () => {
+    const result = state.db.prepare(
       `INSERT OR IGNORE INTO portfolio (id, mode, cash_usdc_units, realized_pnl_usdc_units)
        VALUES (1, 'fixture', ?, '0')`,
     ).run(units);
+    return { created: Number(result.changes) > 0 };
   });
 }
 

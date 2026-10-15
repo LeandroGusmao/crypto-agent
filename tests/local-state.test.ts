@@ -20,14 +20,14 @@ test('reopening preserves the original balance instead of reinitializing', () =>
   withTempDir((dir) => {
     const first = openLocalState(dir, 'write');
     try {
-      initializePaperPortfolio(first, '1000000000');
+      assert.deepEqual(initializePaperPortfolio(first, '1000000000'), { created: true });
     } finally {
       first.close();
     }
 
     const second = openLocalState(dir, 'write');
     try {
-      initializePaperPortfolio(second, '5');
+      assert.deepEqual(initializePaperPortfolio(second, '5'), { created: false });
       assert.deepEqual(readPortfolio(second), {
         mode: 'fixture', cashUSDCUnits: '1000000000', realizedPnlUSDCUnits: '0',
       });

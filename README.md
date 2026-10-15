@@ -73,13 +73,22 @@ The CLI runs in **fixture mode**: it makes no network requests, reads no API key
 
 | Command | What it does |
 |---|---|
-| `init` | Creates the paper portfolio with 1000 paper USDC if it does not exist |
-| `status` | Prints the portfolio as JSON (read-only) |
-| `demo` | Replays the bundled synthetic scenario and prints a JSON report |
-| `replay --fixture <path>` | Replays a synthetic scenario file and prints a JSON report |
-| `report [--format json\|markdown]` | Prints the paper trading report (read-only; Markdown by default) |
+| `init` | Creates the paper portfolio with 1000 paper USDC if it does not exist, and says whether it was created or already existed |
+| `status` | Shows cash and realized paper PnL (read-only) |
+| `demo` | Replays the bundled synthetic scenario, lists each event's outcome and how many orders were newly recorded, then shows the report |
+| `replay --fixture <path>` | Same as `demo`, for a scenario file you provide |
+| `report [--format markdown\|json]` | Shows the paper trading report (read-only; Markdown by default) |
 
-All commands accept `--data-dir <path>` and `--help`.
+Output is human-readable text with amounts in USDC. Add `--json` to any command for machine-readable output (for `report`, `--json` is the same as `--format json`). All commands accept `--data-dir <path>` and `--help`.
+
+Example after `init` and `demo`:
+
+```text
+$ pnpm start -- status
+Mode: fixture
+Cash: 1001.8 USDC
+Realized paper PnL: 1.8 USDC
+```
 
 ### The demo scenario
 
@@ -91,7 +100,7 @@ Scenario files are validated completely before any state is opened, and a replay
 
 ### Monetary units
 
-Monetary values are integer units of the asset's smallest denomination, serialized as decimal strings. USDC uses 6 decimal places, so `1000000000` units equal 1000 USDC.
+Internally, and in `--json` output, monetary values are integer units of the asset's smallest denomination, serialized as decimal strings. USDC uses 6 decimal places, so `"cashUSDCUnits": "1000000000"` means 1000 USDC. Text output converts these units to USDC for you.
 
 ### Local state
 

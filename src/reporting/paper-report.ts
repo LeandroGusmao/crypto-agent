@@ -1,8 +1,9 @@
 import { formatUnits } from '../core/units.ts';
 import type { LocalState } from '../state/local-state.ts';
 import { readPortfolio } from '../state/portfolio.ts';
+import type { PortfolioSnapshot } from '../state/portfolio.ts';
 import { readPaperPositions } from '../paper/ledger.ts';
-import type { PaperPosition } from '../paper/types.ts';
+import type { ExecutionOutcome, PaperPosition } from '../paper/types.ts';
 
 const USDC_DECIMALS = 6;
 
@@ -59,4 +60,29 @@ export function renderPaperMarkdown(report: PaperReport): string {
   }
   lines.push('This report uses synthetic fixtures, not live market data or real trades.', '');
   return lines.join('\n');
+}
+
+// Human-readable portfolio lines shared by init and status.
+export function renderPortfolioSummary(snapshot: PortfolioSnapshot): string {
+  return [
+    `Mode: ${snapshot.mode}`,
+    `Cash: ${usdc(snapshot.cashUSDCUnits)}`,
+    `Realized paper PnL: ${usdc(snapshot.realizedPnlUSDCUnits)}`,
+    '',
+  ].join('\n');
+}
+
+// Lists each replayed event's outcome and how many orders this run newly recorded.
+export function renderReplaySummary(
+  scenarioId: string, outcomes: ExecutionOutcome[], newOrderCount: number,
+): string {
+  const lines = [`Replayed scenario ${scenarioId} (${outcomes.length} events, synthetic fixture data).`];
+  outcomes.forEach((outcome, index) => {
+    const detail = outcome.reason ? `${outcome.status} (${outcome.reason})` : outcome.status;
+    lines.push(`  ${index + 1}. ${outcome.orderId}: ${detail}`);
+  });
+  lines.push(newOrderCount === 0
+    ? 'New orders recorded: 0 (all orders were already recorded; nothing changed)'
+    : `New orders recorded: ${newOrderCount}`);
+  return `${lines.join('\n')}\n`;
 }
