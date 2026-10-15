@@ -138,3 +138,31 @@ test('a schema newer than supported is rejected and releases the lock', () => {
     assert.throws(() => openLocalState(dir, 'read'), /newer than supported/);
   });
 });
+
+test('a reader refuses an outdated schema until a writer migrates it', () => {
+  withTempDir((dir) => {
+    const raw = new DatabaseSync(join(dir, 'state.db'));
+    raw.exec(`CREATE TABLE portfolio (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      mode TEXT NOT NULL CHECK (mode = 'fixture'),
+      cash_usdc_units TEXT NOT NULL,
+      realized_pnl_usdc_units TEXT NOT NULL
+    ) STRICT;
+    INSERT INTO portfolio VALUES (1, 'fixture', '1000000000', '0');
+    PRAGMA user_version = 1;`);
+    raw.close();
+
+    assert.throws(() => openLocalState(dir, 'read'), /out of date/);
+    openLocalState(dir, 'write').close();
+    const reader = openLocalState(dir, 'read');
+    try {
+      assert.equal(readPortfolio(reader).cashUSDCUnits, '1000000000');
+      const tables = reader.db.prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+      ).all() as { name: string }[];
+      assert.deepEqual(tables.map((t) => t.name), ['fills', 'orders', 'portfolio', 'positions']);
+    } finally {
+      reader.close();
+    }
+  });
+});

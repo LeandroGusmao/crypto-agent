@@ -15,6 +15,24 @@ const MIGRATIONS: readonly string[] = [
     cash_usdc_units TEXT NOT NULL,
     realized_pnl_usdc_units TEXT NOT NULL
   ) STRICT;`,
+  `CREATE TABLE orders (
+    order_id TEXT PRIMARY KEY, payload_hash TEXT NOT NULL,
+    intent_hash TEXT,
+    status TEXT NOT NULL CHECK (status IN ('filled', 'unfilled')),
+    reason TEXT, payload_json TEXT NOT NULL
+  ) STRICT;
+  CREATE TABLE fills (
+    order_id TEXT PRIMARY KEY REFERENCES orders(order_id),
+    mint TEXT NOT NULL, side TEXT NOT NULL,
+    token_units TEXT NOT NULL, usdc_units TEXT NOT NULL,
+    fee_usdc_units TEXT NOT NULL, observed_at TEXT NOT NULL,
+    source TEXT NOT NULL CHECK (source = 'fixture')
+  ) STRICT;
+  CREATE TABLE positions (
+    mint TEXT PRIMARY KEY, token_units TEXT NOT NULL,
+    cost_basis_usdc_units TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('open', 'closed'))
+  ) STRICT;`,
 ];
 
 const LATEST_VERSION = MIGRATIONS.length;
@@ -32,19 +50,27 @@ function assertSupportedVersion(version: number): void {
   }
 }
 
+// Runs `work` inside BEGIN IMMEDIATE; any thrown error rolls the whole transaction back.
+export function runInTransaction<T>(db: DatabaseSync, work: () => T): T {
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const result = work();
+    db.exec('COMMIT');
+    return result;
+  } catch (error) {
+    db.exec('ROLLBACK');
+    throw error;
+  }
+}
+
 function migrate(db: DatabaseSync): void {
   const current = readSchemaVersion(db);
   assertSupportedVersion(current);
   for (let version = current; version < LATEST_VERSION; version++) {
-    db.exec('BEGIN IMMEDIATE');
-    try {
+    runInTransaction(db, () => {
       db.exec(MIGRATIONS[version] as string);
       db.exec(`PRAGMA user_version = ${version + 1}`);
-      db.exec('COMMIT');
-    } catch (error) {
-      db.exec('ROLLBACK');
-      throw error;
-    }
+    });
   }
 }
 
@@ -84,6 +110,11 @@ function openReader(dbPath: string): LocalState {
     const version = readSchemaVersion(db);
     if (version === 0) throw new Error('Database is not initialized');
     assertSupportedVersion(version);
+    if (version < LATEST_VERSION) {
+      throw new Error(
+        `Database schema version ${version} is out of date; run init to migrate it to version ${LATEST_VERSION}`,
+      );
+    }
   } catch (error) {
     db.close();
     throw error;

@@ -1,3 +1,4 @@
+import { runInTransaction } from './local-state.ts';
 import type { LocalState } from './local-state.ts';
 
 export type PortfolioSnapshot = {
@@ -12,18 +13,12 @@ function canonicalUnits(value: string): string {
 // Seeds the paper portfolio once; later calls never reset an existing balance.
 export function initializePaperPortfolio(state: LocalState, initialUnits: string): void {
   const units = canonicalUnits(initialUnits);
-  const { db } = state;
-  db.exec('BEGIN IMMEDIATE');
-  try {
-    db.prepare(
+  runInTransaction(state.db, () => {
+    state.db.prepare(
       `INSERT OR IGNORE INTO portfolio (id, mode, cash_usdc_units, realized_pnl_usdc_units)
        VALUES (1, 'fixture', ?, '0')`,
     ).run(units);
-    db.exec('COMMIT');
-  } catch (error) {
-    db.exec('ROLLBACK');
-    throw error;
-  }
+  });
 }
 
 export function readPortfolio(state: LocalState): PortfolioSnapshot {
