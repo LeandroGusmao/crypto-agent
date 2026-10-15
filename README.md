@@ -61,8 +61,7 @@ Requirements: Node.js 24.19 or newer within major version 24, and pnpm 11.
 
 ```bash
 pnpm install
-pnpm typecheck
-pnpm test
+pnpm check
 pnpm start -- init
 pnpm start -- demo
 pnpm start -- status
@@ -112,3 +111,15 @@ Internally, and in `--json` output, monetary values are integer units of the ass
 ## Contributing
 
 Read [AGENTS.md](AGENTS.md) for project conventions and [ARCHITECTURE.md](ARCHITECTURE.md) for the code layout, invariants, and data model. English is the default language for code, comments, CLI output, logs, reports, documentation, and commit messages.
+
+| Command | What it does |
+|---|---|
+| `pnpm check` | Runs every check below, in the same order as CI |
+| `pnpm format` / `pnpm format:check` | Formats code and JSON with oxfmt, or only reports unformatted files |
+| `pnpm lint` | Runs oxlint, including the layer-boundary rules; any warning fails |
+| `pnpm typecheck` | Runs strict TypeScript checks |
+| `pnpm test` | Runs the test suite |
+
+CI runs the same checks on every pull request and on pushes to `main`. Dependabot proposes weekly dependency and GitHub Actions updates, each at least 7 days after its release.
+
+To make `git blame` skip mechanical reformats locally, run `git config blame.ignoreRevsFile .git-blame-ignore-revs`.

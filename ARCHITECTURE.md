@@ -4,7 +4,7 @@ This document describes how the codebase is organized, the rules each layer foll
 
 **Keeping it current:** update this file in the same change that adds a module or layer, changes a contract in `src/paper/types.ts`, adds a schema migration, or changes an invariant below. Record notable decisions in the [decision log](#decision-log).
 
-**Last updated:** 2026-10-14, Milestone 1 (local paper foundation).
+**Last updated:** 2026-10-14, Milestone 1 (local paper foundation), with lint, format, and CI tooling.
 
 ## Current scope
 
@@ -26,7 +26,7 @@ Everything runs locally in **fixture mode**: no network requests, no API keys, n
 
 ## Layers
 
-Source code lives in `src/`, split into layers. A layer may import only from layers below it.
+Source code lives in `src/`, split into layers. A layer may import only from layers below it. `pnpm lint` enforces these boundaries through `no-restricted-imports` rules in `.oxlintrc.json`: `core/` imports no other layer and no I/O modules, `state/` imports only `core/`, `paper/` cannot import `reporting/` or the CLI, `reporting/` cannot import `runInTransaction`, and within `src/` only `state/` may import `node:sqlite`. `import/no-cycle` rejects circular imports.
 
 ```mermaid
 flowchart TD
@@ -193,6 +193,9 @@ The 1-second, 15-second, and 3% values are proposed starting parameters, fixed i
 - Expected values are hand-derived literals, never computed by the code under test.
 - Test files live directly under `tests/` and match `tests/*.test.ts`; shared helpers are in `tests/helpers.ts`.
 - `pnpm test` runs the suite; `pnpm typecheck` runs strict TypeScript checks.
+- `pnpm lint` runs oxlint with the correctness and suspicious categories, readability limits (complexity 15, 60 lines per function in `src/`, nesting depth 3, 4 parameters), and the layer rules above. Any warning fails.
+- `pnpm format:check` verifies oxfmt formatting of code and JSON; Markdown is not formatted. `pnpm format` rewrites files.
+- `pnpm check` runs format check, lint, typecheck, and tests. CI (`.github/workflows/ci.yml`) runs the same steps on pull requests and pushes to `main`.
 
 ## Planned evolution
 
@@ -216,3 +219,6 @@ These pieces are planned; none is implemented yet.
 | 2026-10-14 | Scenario replay is all-or-nothing via nested savepoints | A failing event must not leave a partial replay behind |
 | 2026-10-14 | Scenario files are fully validated before state is opened | Malformed input never touches or creates state |
 | 2026-10-14 | Human-readable CLI output by default; `--json` for machines | Raw integer units were unreadable at the terminal; scripts and later milestones keep a stable JSON contract |
+| 2026-10-14 | oxlint and oxfmt, pinned to exact versions, with layer boundaries enforced as lint rules | Fast, single-binary tools with no plugin setup; layering rules are checked on every change instead of only documented |
+| 2026-10-14 | CI on pull requests and `main`, with actions pinned by commit SHA | Every change runs format, lint, typecheck, and tests; SHA pins prevent a moved tag from changing what CI runs |
+| 2026-10-14 | Dependabot with a 7-day cooldown, minor and patch updates grouped | Limits exposure to compromised releases and stays clear of pnpm's minimum release age check |
