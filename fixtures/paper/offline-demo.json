@@ -1,0 +1,60 @@
+{
+  "mode": "fixture",
+  "id": "offline-demo-v1",
+  "events": [
+    {
+      "intent": {
+        "orderId": "offline-demo-v1:buy",
+        "mint": "fixture-asset-a",
+        "side": "buy",
+        "inputUnits": "20000000",
+        "expectedNetOutputUnits": "19800000",
+        "decidedAt": "2026-10-14T12:00:00.000Z"
+      },
+      "quote": {
+        "source": "fixture",
+        "evidenceClass": "modeled",
+        "mint": "fixture-asset-a",
+        "side": "buy",
+        "inputUnits": "20000000",
+        "netOutputUnits": "19800000",
+        "feeUSDCUnits": "200000",
+        "observedAt": "2026-10-14T12:00:02.000Z"
+      },
+      "now": "2026-10-14T12:00:02.000Z"
+    },
+    {
+      "intent": {
+        "orderId": "offline-demo-v1:exit-unavailable",
+        "mint": "fixture-asset-a",
+        "side": "sell",
+        "inputUnits": "19800000",
+        "expectedNetOutputUnits": "21800000",
+        "decidedAt": "2026-10-14T12:00:30.000Z"
+      },
+      "quote": null,
+      "now": "2026-10-14T12:00:32.000Z"
+    },
+    {
+      "intent": {
+        "orderId": "offline-demo-v1:sell",
+        "mint": "fixture-asset-a",
+        "side": "sell",
+        "inputUnits": "19800000",
+        "expectedNetOutputUnits": "21800000",
+        "decidedAt": "2026-10-14T12:01:00.000Z"
+      },
+      "quote": {
+        "source": "fixture",
+        "evidenceClass": "modeled",
+        "mint": "fixture-asset-a",
+        "side": "sell",
+        "inputUnits": "19800000",
+        "netOutputUnits": "21800000",
+        "feeUSDCUnits": "200000",
+        "observedAt": "2026-10-14T12:01:02.000Z"
+      },
+      "now": "2026-10-14T12:01:02.000Z"
+    }
+  ]
+}

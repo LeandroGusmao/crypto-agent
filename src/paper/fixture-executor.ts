@@ -1,8 +1,8 @@
 import { parseUtcTimestamp } from '../core/time.ts';
 import type { LocalState } from '../state/local-state.ts';
+import { requireText, requireUnits } from '../core/validation.ts';
 import {
   commitPaperFill, hashIntent, normalizeIntent, readOrderRecord, recordUnfilledOrder,
-  requireText, requireUnits,
 } from './ledger.ts';
 import type { ExecutionOutcome, FixtureIntent, FixtureQuote, PaperFill } from './types.ts';
 

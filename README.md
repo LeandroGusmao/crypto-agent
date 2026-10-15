@@ -2,7 +2,7 @@
 
 An autonomous agent experiment that discovers new Solana tokens, investigates opportunities, and refines its decisions through paper trading on live market data.
 
-> **Status:** Milestone 1 in progress. The CLI can initialize and inspect a local paper portfolio in fixture mode. The project runs in paper mode only: it holds no wallet, signs no transactions, and uses no real capital.
+> **Status:** Milestone 1 (local paper foundation) is implemented: an offline CLI with a persistent paper portfolio, deterministic fixture execution, and JSON/Markdown reports. Risk limits, spending controls, live data, and model calls are not implemented yet. The project runs in paper mode only: it holds no wallet, signs no transactions, and uses no real capital.
 
 ## Goals
 
@@ -51,36 +51,54 @@ Milestone 1 makes no network requests and no paid API calls, and it reads no API
 
 Out of scope for now: real wallets, other networks, individual NFT trading, and Polymarket, which is reserved for a future experiment.
 
-## Tech stack (planned)
+## Tech stack
 
-TypeScript on Node.js 24, local SQLite through `node:sqlite`, `node:test`, and pnpm.
+TypeScript executed natively by Node.js 24, local SQLite through `node:sqlite`, `node:test`, and pnpm. There are no runtime dependencies.
 
 ## Getting started
 
 Requirements: Node.js 24.19 or newer within major version 24, and pnpm 11.
 
-```sh
+```bash
 pnpm install
-pnpm test        # run the test suite
-pnpm typecheck   # strict TypeScript check
+pnpm typecheck
+pnpm test
+pnpm start -- init
+pnpm start -- demo
+pnpm start -- status
+pnpm start -- report --format markdown
 ```
 
-The CLI runs in **fixture mode**: it makes no network requests, reads no API keys, and never trades real funds.
+The CLI runs in **fixture mode**: it makes no network requests, reads no API keys, holds no wallet, and never trades real funds. No live entries are enabled.
 
-```sh
-pnpm start init     # create the paper portfolio with 1000 paper USDC, if missing
-pnpm start status   # print the portfolio as JSON (read-only)
-pnpm start --help
-```
+| Command | What it does |
+|---|---|
+| `init` | Creates the paper portfolio with 1000 paper USDC if it does not exist |
+| `status` | Prints the portfolio as JSON (read-only) |
+| `demo` | Replays the bundled synthetic scenario and prints a JSON report |
+| `replay --fixture <path>` | Replays a synthetic scenario file and prints a JSON report |
+| `report [--format json\|markdown]` | Prints the paper trading report (read-only; Markdown by default) |
+
+All commands accept `--data-dir <path>` and `--help`.
+
+### The demo scenario
+
+[fixtures/paper/offline-demo.json](fixtures/paper/offline-demo.json) holds three synthetic events for one asset: a modeled buy of 20 USDC, a sell attempt with no quote (recorded as unfilled; the position stays open), and a modeled sell for 21.8 USDC. The amounts are deliberately synthetic accounting examples, not recorded market data or a profitability claim. After the demo the report shows 1001.8 USDC cash, 1.8 USDC realized paper PnL, two modeled fills, and one unfilled order.
+
+A quote fills an order only when it is `modeled` evidence for the same asset, side, and amount, observed at least 1 second after the decision, no more than 15 seconds old, and within 3% adverse slippage of the expected output. These limits are proposed starting values, fixed for this milestone. A position without a fresh modeled exit quote stays open and is reported with an unknown exit value; no sale or profit is invented.
+
+Scenario files are validated completely before any state is opened, and a replay is applied atomically: if any event fails, nothing from that replay is recorded.
+
+### Monetary units
 
 Monetary values are integer units of the asset's smallest denomination, serialized as decimal strings. USDC uses 6 decimal places, so `1000000000` units equal 1000 USDC.
 
 ### Local state
 
 - State lives in `.crypto-agent/` by default and is ignored by git. Use `--data-dir <path>` to run an independent experiment in another directory.
-- Running `init` again never resets an existing balance.
-- `status` only reads state; it fails if the portfolio has not been initialized.
-- A writer holds `<data-dir>/state.lock` while it runs, and a second writer is rejected. If a process crashed and left the lock behind, confirm that no writer is still running before deleting the lock by hand: the lock file records the owner's PID, and `ps -p <pid>` should show no matching `node` process. The CLI never removes a lock it does not own; automatic crash recovery is planned for a later milestone.
+- Running `init`, `demo`, or `replay` again never resets balances or duplicates recorded orders; every order ID is recorded once.
+- `status` and `report` only read state; they fail if the portfolio has not been initialized.
+- A writer holds `<data-dir>/state.lock` while it runs, and a second writer is rejected. If a process crashed and left the lock behind, confirm that no writer is still running before deleting the lock by hand: the lock file records the owner's PID, and `ps -p <pid>` should show no matching `node` process. The CLI never removes a lock it does not own. Automatic crash recovery is not part of this milestone.
 
 ## Contributing
 

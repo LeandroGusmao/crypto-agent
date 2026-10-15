@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
-import { parseUtcTimestamp } from '../core/time.ts';
+import {
+  invalid, requireSide, requireText, requireUnits, requireUtcTimestamp,
+} from '../core/validation.ts';
 import { runInTransaction } from '../state/local-state.ts';
 import type { LocalState } from '../state/local-state.ts';
 import { readPortfolio } from '../state/portfolio.ts';
@@ -8,41 +10,6 @@ import type { FixtureIntent, PaperFill, PaperPosition } from './types.ts';
 export type OrderRecord = {
   status: 'filled' | 'unfilled'; reason: string | null; intentHash: string | null;
 };
-
-function invalid(kind: string, detail: string): Error {
-  return new Error(`Invalid ${kind}: ${detail}`);
-}
-
-export function requireText(kind: string, field: string, value: unknown): string {
-  if (typeof value !== 'string' || value.length === 0) {
-    throw invalid(kind, `${field} must be a non-empty string`);
-  }
-  return value;
-}
-
-// Returns the canonical form of a nonnegative integer unit string.
-export function requireUnits(
-  kind: string, field: string, value: unknown, { positive }: { positive: boolean },
-): string {
-  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
-    throw invalid(kind, `${field} must be an integer unit string`);
-  }
-  const units = BigInt(value);
-  if (positive && units === 0n) throw invalid(kind, `${field} must be positive`);
-  return units.toString();
-}
-
-export function requireSide(kind: string, value: unknown): 'buy' | 'sell' {
-  if (value !== 'buy' && value !== 'sell') throw invalid(kind, 'side must be "buy" or "sell"');
-  return value;
-}
-
-// Returns the timestamp in canonical ISO form so equal instants hash identically.
-export function requireUtcTimestamp(kind: string, field: string, value: unknown): string {
-  const ms = parseUtcTimestamp(value);
-  if (ms === null) throw invalid(kind, `${field} must be an ISO 8601 UTC timestamp`);
-  return new Date(ms).toISOString();
-}
 
 function normalizeFill(fill: PaperFill): PaperFill {
   if (fill?.source !== 'fixture') throw invalid('fill', 'source must be "fixture"');

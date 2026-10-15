@@ -50,8 +50,24 @@ function assertSupportedVersion(version: number): void {
   }
 }
 
-// Runs `work` inside BEGIN IMMEDIATE; any thrown error rolls the whole transaction back.
+let savepointCounter = 0;
+
+// Runs `work` atomically: BEGIN IMMEDIATE at the top level, a savepoint when nested.
+// Any thrown error rolls back everything `work` wrote.
 export function runInTransaction<T>(db: DatabaseSync, work: () => T): T {
+  if (db.isTransaction) {
+    const savepoint = `nested_${++savepointCounter}`;
+    db.exec(`SAVEPOINT ${savepoint}`);
+    try {
+      const result = work();
+      db.exec(`RELEASE ${savepoint}`);
+      return result;
+    } catch (error) {
+      db.exec(`ROLLBACK TO ${savepoint}`);
+      db.exec(`RELEASE ${savepoint}`);
+      throw error;
+    }
+  }
   db.exec('BEGIN IMMEDIATE');
   try {
     const result = work();
