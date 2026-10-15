@@ -8,18 +8,31 @@ import type { FixtureIntent, PaperFill } from '../src/paper/types.ts';
 import { countRows, withPaperState, withTempDir } from './helpers.ts';
 
 const buy: PaperFill = {
-  orderId: 'buy-a', mint: 'fixture-asset-a', side: 'buy',
-  tokenUnits: '19800000', usdcUnits: '20000000', feeUSDCUnits: '200000',
-  observedAt: '2026-10-14T12:00:02.000Z', source: 'fixture',
+  orderId: 'buy-a',
+  mint: 'fixture-asset-a',
+  side: 'buy',
+  tokenUnits: '19800000',
+  usdcUnits: '20000000',
+  feeUSDCUnits: '200000',
+  observedAt: '2026-10-14T12:00:02.000Z',
+  source: 'fixture',
 };
 const sell: PaperFill = {
-  orderId: 'sell-a', mint: 'fixture-asset-a', side: 'sell',
-  tokenUnits: '19800000', usdcUnits: '21800000', feeUSDCUnits: '200000',
-  observedAt: '2026-10-14T12:01:02.000Z', source: 'fixture',
+  orderId: 'sell-a',
+  mint: 'fixture-asset-a',
+  side: 'sell',
+  tokenUnits: '19800000',
+  usdcUnits: '21800000',
+  feeUSDCUnits: '200000',
+  observedAt: '2026-10-14T12:01:02.000Z',
+  source: 'fixture',
 };
 const intent: FixtureIntent = {
-  orderId: 'buy-b', mint: 'fixture-asset-b', side: 'buy',
-  inputUnits: '20000000', expectedNetOutputUnits: '19800000',
+  orderId: 'buy-b',
+  mint: 'fixture-asset-b',
+  side: 'buy',
+  inputUnits: '20000000',
+  expectedNetOutputUnits: '19800000',
   decidedAt: '2026-10-14T12:00:00.000Z',
 };
 
@@ -36,10 +49,14 @@ test('a buy then a full sell settles cash and realized PnL without double-counti
   withPaperState((state) => {
     assert.deepEqual(commitPaperFill(state, buy), { applied: true });
     assert.equal(readPortfolio(state).cashUSDCUnits, '980000000');
-    assert.deepEqual(readPaperPositions(state), [{
-      mint: 'fixture-asset-a', tokenUnits: '19800000',
-      costBasisUSDCUnits: '20000000', status: 'open',
-    }]);
+    assert.deepEqual(readPaperPositions(state), [
+      {
+        mint: 'fixture-asset-a',
+        tokenUnits: '19800000',
+        costBasisUSDCUnits: '20000000',
+        status: 'open',
+      },
+    ]);
     assert.deepEqual(commitPaperFill(state, buy), { applied: false });
     assert.deepEqual(commitPaperFill(state, sell), { applied: true });
     assert.equal(readPortfolio(state).cashUSDCUnits, '1001800000');
@@ -83,7 +100,10 @@ test('idempotency survives reopening the state', () => {
 test('reusing an order ID with a different payload fails', () => {
   withPaperState((state) => {
     commitPaperFill(state, buy);
-    assert.throws(() => commitPaperFill(state, { ...buy, usdcUnits: '20000001' }), /Order ID conflict/);
+    assert.throws(
+      () => commitPaperFill(state, { ...buy, usdcUnits: '20000001' }),
+      /Order ID conflict/,
+    );
     assert.equal(readPortfolio(state).cashUSDCUnits, '980000000');
   });
 });
@@ -132,8 +152,12 @@ test('zero, negative, and malformed units are rejected before any write', () => 
   withPaperState((state) => {
     const before = snapshot(state);
     const invalid: Partial<PaperFill>[] = [
-      { tokenUnits: '0' }, { usdcUnits: '0' }, { usdcUnits: '-1' },
-      { tokenUnits: '1.5' }, { feeUSDCUnits: '1e3' }, { usdcUnits: '' },
+      { tokenUnits: '0' },
+      { usdcUnits: '0' },
+      { usdcUnits: '-1' },
+      { tokenUnits: '1.5' },
+      { feeUSDCUnits: '1e3' },
+      { usdcUnits: '' },
     ];
     for (const change of invalid) {
       assert.throws(() => commitPaperFill(state, { ...buy, ...change }), /Invalid/);
@@ -173,11 +197,20 @@ test('a mint can be bought again after its position closes', () => {
   withPaperState((state) => {
     commitPaperFill(state, buy);
     commitPaperFill(state, sell);
-    commitPaperFill(state, { ...buy, orderId: 'buy-a2', usdcUnits: '10000000', tokenUnits: '9000000' });
-    assert.deepEqual(readPaperPositions(state), [{
-      mint: 'fixture-asset-a', tokenUnits: '9000000',
-      costBasisUSDCUnits: '10000000', status: 'open',
-    }]);
+    commitPaperFill(state, {
+      ...buy,
+      orderId: 'buy-a2',
+      usdcUnits: '10000000',
+      tokenUnits: '9000000',
+    });
+    assert.deepEqual(readPaperPositions(state), [
+      {
+        mint: 'fixture-asset-a',
+        tokenUnits: '9000000',
+        costBasisUSDCUnits: '10000000',
+        status: 'open',
+      },
+    ]);
     assert.equal(readPortfolio(state).cashUSDCUnits, '991800000');
   });
 });
@@ -186,7 +219,11 @@ test('equivalent timestamp and unit spellings replay as the same order', () => {
   withPaperState((state) => {
     commitPaperFill(state, buy);
     assert.deepEqual(
-      commitPaperFill(state, { ...buy, observedAt: '2026-10-14T12:00:02Z', tokenUnits: '019800000' }),
+      commitPaperFill(state, {
+        ...buy,
+        observedAt: '2026-10-14T12:00:02Z',
+        tokenUnits: '019800000',
+      }),
       { applied: false },
     );
     assert.equal(countRows(state, 'fills'), 1);

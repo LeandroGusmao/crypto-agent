@@ -14,8 +14,7 @@ export function parseUnits(value: string, decimals: number): bigint {
   }
   const [whole = '', fraction = ''] = value.split('.');
   if (fraction.length > decimals) throw new Error('Invalid amount');
-  return BigInt(whole) * 10n ** BigInt(decimals) +
-    BigInt(fraction.padEnd(decimals, '0') || '0');
+  return BigInt(whole) * 10n ** BigInt(decimals) + BigInt(fraction.padEnd(decimals, '0') || '0');
 }
 
 // Renders integer units as a decimal string; negative values are allowed for losses.

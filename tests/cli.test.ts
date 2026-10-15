@@ -30,7 +30,9 @@ test('init seeds 1000 USDC once and status reports it in fixture mode', () => {
     const first = runCli(['init', '--json', '--data-dir', dir]);
     assert.equal(first.status, 0, first.stderr);
     assert.deepEqual(JSON.parse(first.stdout), {
-      mode: 'fixture', cashUSDCUnits: '1000000000', realizedPnlUSDCUnits: '0',
+      mode: 'fixture',
+      cashUSDCUnits: '1000000000',
+      realizedPnlUSDCUnits: '0',
     });
 
     assert.equal(runCli(['init', '--data-dir', dir]).status, 0);
@@ -38,7 +40,9 @@ test('init seeds 1000 USDC once and status reports it in fixture mode', () => {
     const status = runCli(['status', '--json', '--data-dir', dir]);
     assert.equal(status.status, 0, status.stderr);
     assert.deepEqual(JSON.parse(status.stdout), {
-      mode: 'fixture', cashUSDCUnits: '1000000000', realizedPnlUSDCUnits: '0',
+      mode: 'fixture',
+      cashUSDCUnits: '1000000000',
+      realizedPnlUSDCUnits: '0',
     });
     assert.equal(existsSync(join(dir, 'state.lock')), false);
   });
@@ -55,7 +59,10 @@ test('init and status print readable USDC amounts by default', () => {
     assert.doesNotMatch(first.stdout, /1000000000/);
 
     const again = runCli(['init', '--data-dir', dir]);
-    assert.match(again.stdout, /^A paper portfolio already exists .*; its balance was not changed\.$/m);
+    assert.match(
+      again.stdout,
+      /^A paper portfolio already exists .*; its balance was not changed\.$/m,
+    );
     assert.match(again.stdout, /^Cash: 1000 USDC$/m);
 
     const status = runCli(['status', '--data-dir', dir]);
@@ -73,14 +80,20 @@ test('demo survives separate processes without duplicate fills', () => {
     assert.equal(runCli(['demo', '--data-dir', dir]).status, 0);
 
     assert.deepEqual(readJsonReport(dir), {
-      mode: 'fixture', cashUSDCUnits: '1001800000', realizedPnlUSDCUnits: '1800000',
-      openPositions: [], modeledFillCount: 2, unfilledOrderCount: 1,
+      mode: 'fixture',
+      cashUSDCUnits: '1001800000',
+      realizedPnlUSDCUnits: '1800000',
+      openPositions: [],
+      modeledFillCount: 2,
+      unfilledOrderCount: 1,
       positionsWithoutExitValue: 0,
     });
     const status = runCli(['status', '--json', '--data-dir', dir]);
     assert.equal(status.status, 0, status.stderr);
     assert.deepEqual(JSON.parse(status.stdout), {
-      mode: 'fixture', cashUSDCUnits: '1001800000', realizedPnlUSDCUnits: '1800000',
+      mode: 'fixture',
+      cashUSDCUnits: '1001800000',
+      realizedPnlUSDCUnits: '1800000',
     });
   });
 });
@@ -106,16 +119,25 @@ test('demo prints each outcome and how many orders were newly recorded', () => {
   withTempDir((dir) => {
     const first = runCli(['demo', '--data-dir', dir]);
     assert.equal(first.status, 0, first.stderr);
-    assert.match(first.stdout, /^Replayed scenario offline-demo-v1 \(3 events, synthetic fixture data\)\.$/m);
+    assert.match(
+      first.stdout,
+      /^Replayed scenario offline-demo-v1 \(3 events, synthetic fixture data\)\.$/m,
+    );
     assert.match(first.stdout, /^ {2}1\. offline-demo-v1:buy: filled$/m);
-    assert.match(first.stdout, /^ {2}2\. offline-demo-v1:exit-unavailable: unfilled \(quote_unavailable\)$/m);
+    assert.match(
+      first.stdout,
+      /^ {2}2\. offline-demo-v1:exit-unavailable: unfilled \(quote_unavailable\)$/m,
+    );
     assert.match(first.stdout, /^ {2}3\. offline-demo-v1:sell: filled$/m);
     assert.match(first.stdout, /^New orders recorded: 3$/m);
     assert.match(first.stdout, /^Cash: 1001\.8 USDC$/m);
 
     const second = runCli(['demo', '--data-dir', dir]);
     assert.equal(second.status, 0, second.stderr);
-    assert.match(second.stdout, /^New orders recorded: 0 \(all orders were already recorded; nothing changed\)$/m);
+    assert.match(
+      second.stdout,
+      /^New orders recorded: 0 \(all orders were already recorded; nothing changed\)$/m,
+    );
     assert.match(second.stdout, /^Cash: 1001\.8 USDC$/m);
   });
 });
@@ -131,12 +153,20 @@ test('a scenario ending after an unavailable exit keeps the position without an 
     const replay = runCli(['replay', '--fixture', fixturePath, '--data-dir', dataDir]);
     assert.equal(replay.status, 0, replay.stderr);
     assert.deepEqual(readJsonReport(dataDir), {
-      mode: 'fixture', cashUSDCUnits: '980000000', realizedPnlUSDCUnits: '0',
-      openPositions: [{
-        mint: 'fixture-asset-a', tokenUnits: '19800000',
-        costBasisUSDCUnits: '20000000', status: 'open',
-      }],
-      modeledFillCount: 1, unfilledOrderCount: 1, positionsWithoutExitValue: 1,
+      mode: 'fixture',
+      cashUSDCUnits: '980000000',
+      realizedPnlUSDCUnits: '0',
+      openPositions: [
+        {
+          mint: 'fixture-asset-a',
+          tokenUnits: '19800000',
+          costBasisUSDCUnits: '20000000',
+          status: 'open',
+        },
+      ],
+      modeledFillCount: 1,
+      unfilledOrderCount: 1,
+      positionsWithoutExitValue: 1,
     });
     const markdown = runCli(['report', '--format', 'markdown', '--data-dir', dataDir]);
     assert.match(markdown.stdout, /^Positions without a verified exit value: 1$/m);
@@ -197,9 +227,18 @@ test('invalid commands and options fail cleanly', () => {
       [['status', 'extra', '--data-dir', dir], /^Error: Unexpected argument "extra"/],
       [['report', '--format', 'xml', '--data-dir', dir], /^Error: Unsupported report format "xml"/],
       [['replay', '--data-dir', dir], /^Error: Missing --fixture/],
-      [['status', '--format', 'json', '--data-dir', dir], /^Error: Option --format is only valid with report/],
-      [['demo', '--fixture', 'x.json', '--data-dir', dir], /^Error: Option --fixture is only valid with replay/],
-      [['report', '--json', '--format', 'markdown', '--data-dir', dir], /^Error: --json cannot be combined with --format markdown/],
+      [
+        ['status', '--format', 'json', '--data-dir', dir],
+        /^Error: Option --format is only valid with report/,
+      ],
+      [
+        ['demo', '--fixture', 'x.json', '--data-dir', dir],
+        /^Error: Option --fixture is only valid with replay/,
+      ],
+      [
+        ['report', '--json', '--format', 'markdown', '--data-dir', dir],
+        /^Error: --json cannot be combined with --format markdown/,
+      ],
     ];
     for (const [args, pattern] of cases) {
       const result = runCli(args);

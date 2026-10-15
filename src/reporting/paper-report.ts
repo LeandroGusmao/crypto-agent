@@ -8,8 +8,12 @@ import type { ExecutionOutcome, PaperPosition } from '../paper/types.ts';
 const USDC_DECIMALS = 6;
 
 export type PaperReport = {
-  mode: 'fixture'; cashUSDCUnits: string; realizedPnlUSDCUnits: string;
-  openPositions: PaperPosition[]; modeledFillCount: number; unfilledOrderCount: number;
+  mode: 'fixture';
+  cashUSDCUnits: string;
+  realizedPnlUSDCUnits: string;
+  openPositions: PaperPosition[];
+  modeledFillCount: number;
+  unfilledOrderCount: number;
   positionsWithoutExitValue: number;
 };
 
@@ -50,7 +54,12 @@ export function renderPaperMarkdown(report: PaperReport): string {
     '',
   ];
   if (report.openPositions.length > 0) {
-    lines.push('## Open positions', '', '| Mint | Token units | Cost basis | Exit value |', '|---|---|---|---|');
+    lines.push(
+      '## Open positions',
+      '',
+      '| Mint | Token units | Cost basis | Exit value |',
+      '|---|---|---|---|',
+    );
     for (const position of report.openPositions) {
       lines.push(
         `| ${position.mint} | ${position.tokenUnits} | ${usdc(position.costBasisUSDCUnits)} | unknown |`,
@@ -74,15 +83,21 @@ export function renderPortfolioSummary(snapshot: PortfolioSnapshot): string {
 
 // Lists each replayed event's outcome and how many orders this run newly recorded.
 export function renderReplaySummary(
-  scenarioId: string, outcomes: ExecutionOutcome[], newOrderCount: number,
+  scenarioId: string,
+  outcomes: ExecutionOutcome[],
+  newOrderCount: number,
 ): string {
-  const lines = [`Replayed scenario ${scenarioId} (${outcomes.length} events, synthetic fixture data).`];
+  const lines = [
+    `Replayed scenario ${scenarioId} (${outcomes.length} events, synthetic fixture data).`,
+  ];
   outcomes.forEach((outcome, index) => {
     const detail = outcome.reason ? `${outcome.status} (${outcome.reason})` : outcome.status;
     lines.push(`  ${index + 1}. ${outcome.orderId}: ${detail}`);
   });
-  lines.push(newOrderCount === 0
-    ? 'New orders recorded: 0 (all orders were already recorded; nothing changed)'
-    : `New orders recorded: ${newOrderCount}`);
+  lines.push(
+    newOrderCount === 0
+      ? 'New orders recorded: 0 (all orders were already recorded; nothing changed)'
+      : `New orders recorded: ${newOrderCount}`,
+  );
   return `${lines.join('\n')}\n`;
 }

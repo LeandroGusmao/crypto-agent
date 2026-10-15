@@ -10,22 +10,39 @@ const decidedAt = '2026-10-14T12:00:00.000Z';
 const nowMs = Date.parse('2026-10-14T12:00:02.000Z');
 
 const buyIntent: FixtureIntent = {
-  orderId: 'buy-a', mint: 'fixture-asset-a', side: 'buy',
-  inputUnits: '20000000', expectedNetOutputUnits: '19800000', decidedAt,
+  orderId: 'buy-a',
+  mint: 'fixture-asset-a',
+  side: 'buy',
+  inputUnits: '20000000',
+  expectedNetOutputUnits: '19800000',
+  decidedAt,
 };
 const buyQuote: FixtureQuote = {
-  source: 'fixture', evidenceClass: 'modeled', mint: 'fixture-asset-a', side: 'buy',
-  inputUnits: '20000000', netOutputUnits: '19800000', feeUSDCUnits: '200000',
+  source: 'fixture',
+  evidenceClass: 'modeled',
+  mint: 'fixture-asset-a',
+  side: 'buy',
+  inputUnits: '20000000',
+  netOutputUnits: '19800000',
+  feeUSDCUnits: '200000',
   observedAt: '2026-10-14T12:00:02.000Z',
 };
 const sellIntent: FixtureIntent = {
-  orderId: 'sell-a', mint: 'fixture-asset-a', side: 'sell',
-  inputUnits: '19800000', expectedNetOutputUnits: '21800000',
+  orderId: 'sell-a',
+  mint: 'fixture-asset-a',
+  side: 'sell',
+  inputUnits: '19800000',
+  expectedNetOutputUnits: '21800000',
   decidedAt: '2026-10-14T12:01:00.000Z',
 };
 const sellQuote: FixtureQuote = {
-  source: 'fixture', evidenceClass: 'modeled', mint: 'fixture-asset-a', side: 'sell',
-  inputUnits: '19800000', netOutputUnits: '21800000', feeUSDCUnits: '200000',
+  source: 'fixture',
+  evidenceClass: 'modeled',
+  mint: 'fixture-asset-a',
+  side: 'sell',
+  inputUnits: '19800000',
+  netOutputUnits: '21800000',
+  feeUSDCUnits: '200000',
   observedAt: '2026-10-14T12:01:02.000Z',
 };
 const sellNowMs = Date.parse('2026-10-14T12:01:02.000Z');
@@ -33,13 +50,19 @@ const sellNowMs = Date.parse('2026-10-14T12:01:02.000Z');
 test('a fresh modeled quote observed after the minimum latency fills the buy', () => {
   withPaperState((state) => {
     assert.deepEqual(executeFixtureOrder(state, buyIntent, buyQuote, nowMs), {
-      orderId: 'buy-a', status: 'filled', reason: null,
+      orderId: 'buy-a',
+      status: 'filled',
+      reason: null,
     });
     assert.equal(readPortfolio(state).cashUSDCUnits, '980000000');
-    assert.deepEqual(readPaperPositions(state), [{
-      mint: 'fixture-asset-a', tokenUnits: '19800000',
-      costBasisUSDCUnits: '20000000', status: 'open',
-    }]);
+    assert.deepEqual(readPaperPositions(state), [
+      {
+        mint: 'fixture-asset-a',
+        tokenUnits: '19800000',
+        costBasisUSDCUnits: '20000000',
+        status: 'open',
+      },
+    ]);
   });
 });
 
@@ -47,7 +70,9 @@ test('a modeled sell credits the quoted net output and realizes PnL', () => {
   withPaperState((state) => {
     executeFixtureOrder(state, buyIntent, buyQuote, nowMs);
     assert.deepEqual(executeFixtureOrder(state, sellIntent, sellQuote, sellNowMs), {
-      orderId: 'sell-a', status: 'filled', reason: null,
+      orderId: 'sell-a',
+      status: 'filled',
+      reason: null,
     });
     assert.equal(readPortfolio(state).cashUSDCUnits, '1001800000');
     assert.equal(readPortfolio(state).realizedPnlUSDCUnits, '1800000');
@@ -58,20 +83,62 @@ test('a modeled sell credits the quoted net output and realizes PnL', () => {
 test('ineligible or unavailable quotes leave the order unfilled and balances unchanged', () => {
   const cases: { name: string; quote: FixtureQuote | null; now?: number; reason: string }[] = [
     { name: 'missing quote', quote: null, reason: 'quote_unavailable' },
-    { name: 'non-fixture source', quote: { ...buyQuote, source: 'live' as 'fixture' }, reason: 'quote_source_mismatch' },
-    { name: 'quote-only evidence', quote: { ...buyQuote, evidenceClass: 'quote_only' }, reason: 'quote_not_modeled' },
-    { name: 'unsupported evidence', quote: { ...buyQuote, evidenceClass: 'unsupported' }, reason: 'quote_not_modeled' },
-    { name: 'other mint', quote: { ...buyQuote, mint: 'fixture-asset-z' }, reason: 'quote_mint_mismatch' },
-    { name: 'other side', quote: { ...buyQuote, side: 'sell' }, reason: 'quote_side_mismatch' },
-    { name: 'other input', quote: { ...buyQuote, inputUnits: '20000001' }, reason: 'quote_input_mismatch' },
-    { name: 'non-UTC timestamp', quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.000-03:00' }, reason: 'quote_timestamp_invalid' },
-    { name: 'impossible date', quote: { ...buyQuote, observedAt: '2026-02-30T12:00:02.000Z' }, reason: 'quote_timestamp_invalid' },
-    { name: 'observed after now', quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.001Z' }, reason: 'quote_from_future' },
-    { name: 'observed before decision', quote: { ...buyQuote, observedAt: '2026-10-14T11:59:59.000Z' }, reason: 'quote_before_decision' },
-    { name: 'inside minimum latency', quote: { ...buyQuote, observedAt: '2026-10-14T12:00:00.999Z' }, reason: 'quote_before_min_latency' },
     {
-      name: 'older than 15 seconds', quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.000Z' },
-      now: Date.parse('2026-10-14T12:00:17.001Z'), reason: 'quote_stale',
+      name: 'non-fixture source',
+      quote: { ...buyQuote, source: 'live' as 'fixture' },
+      reason: 'quote_source_mismatch',
+    },
+    {
+      name: 'quote-only evidence',
+      quote: { ...buyQuote, evidenceClass: 'quote_only' },
+      reason: 'quote_not_modeled',
+    },
+    {
+      name: 'unsupported evidence',
+      quote: { ...buyQuote, evidenceClass: 'unsupported' },
+      reason: 'quote_not_modeled',
+    },
+    {
+      name: 'other mint',
+      quote: { ...buyQuote, mint: 'fixture-asset-z' },
+      reason: 'quote_mint_mismatch',
+    },
+    { name: 'other side', quote: { ...buyQuote, side: 'sell' }, reason: 'quote_side_mismatch' },
+    {
+      name: 'other input',
+      quote: { ...buyQuote, inputUnits: '20000001' },
+      reason: 'quote_input_mismatch',
+    },
+    {
+      name: 'non-UTC timestamp',
+      quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.000-03:00' },
+      reason: 'quote_timestamp_invalid',
+    },
+    {
+      name: 'impossible date',
+      quote: { ...buyQuote, observedAt: '2026-02-30T12:00:02.000Z' },
+      reason: 'quote_timestamp_invalid',
+    },
+    {
+      name: 'observed after now',
+      quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.001Z' },
+      reason: 'quote_from_future',
+    },
+    {
+      name: 'observed before decision',
+      quote: { ...buyQuote, observedAt: '2026-10-14T11:59:59.000Z' },
+      reason: 'quote_before_decision',
+    },
+    {
+      name: 'inside minimum latency',
+      quote: { ...buyQuote, observedAt: '2026-10-14T12:00:00.999Z' },
+      reason: 'quote_before_min_latency',
+    },
+    {
+      name: 'older than 15 seconds',
+      quote: { ...buyQuote, observedAt: '2026-10-14T12:00:02.000Z' },
+      now: Date.parse('2026-10-14T12:00:17.001Z'),
+      reason: 'quote_stale',
     },
   ];
   withPaperState((state) => {
@@ -107,13 +174,27 @@ test('quotes exactly at the latency and freshness boundaries fill', () => {
 test('slippage of exactly 3% is accepted and one unit more is rejected', () => {
   const intent = { ...buyIntent, expectedNetOutputUnits: '20000000' };
   withPaperState((state) => {
-    const outcome = executeFixtureOrder(state, intent, { ...buyQuote, netOutputUnits: '19400000' }, nowMs);
+    const outcome = executeFixtureOrder(
+      state,
+      intent,
+      { ...buyQuote, netOutputUnits: '19400000' },
+      nowMs,
+    );
     assert.equal(outcome.status, 'filled');
     assert.equal(readPaperPositions(state)[0]?.tokenUnits, '19400000');
   });
   withPaperState((state) => {
-    const outcome = executeFixtureOrder(state, intent, { ...buyQuote, netOutputUnits: '19399999' }, nowMs);
-    assert.deepEqual(outcome, { orderId: 'buy-a', status: 'unfilled', reason: 'slippage_exceeded' });
+    const outcome = executeFixtureOrder(
+      state,
+      intent,
+      { ...buyQuote, netOutputUnits: '19399999' },
+      nowMs,
+    );
+    assert.deepEqual(outcome, {
+      orderId: 'buy-a',
+      status: 'unfilled',
+      reason: 'slippage_exceeded',
+    });
     assert.equal(readPortfolio(state).cashUSDCUnits, '1000000000');
   });
 });
@@ -122,7 +203,11 @@ test('a missing sell quote keeps the position open with no realized PnL', () => 
   withPaperState((state) => {
     executeFixtureOrder(state, buyIntent, buyQuote, nowMs);
     const outcome = executeFixtureOrder(state, sellIntent, null, sellNowMs);
-    assert.deepEqual(outcome, { orderId: 'sell-a', status: 'unfilled', reason: 'quote_unavailable' });
+    assert.deepEqual(outcome, {
+      orderId: 'sell-a',
+      status: 'unfilled',
+      reason: 'quote_unavailable',
+    });
     assert.equal(readPaperPositions(state)[0]?.status, 'open');
     assert.equal(readPortfolio(state).realizedPnlUSDCUnits, '0');
     assert.equal(readPortfolio(state).cashUSDCUnits, '980000000');
@@ -133,7 +218,9 @@ test('replaying an identical intent returns its recorded outcome regardless of t
   withPaperState((state) => {
     executeFixtureOrder(state, buyIntent, buyQuote, nowMs);
     assert.deepEqual(executeFixtureOrder(state, buyIntent, null, nowMs), {
-      orderId: 'buy-a', status: 'filled', reason: null,
+      orderId: 'buy-a',
+      status: 'filled',
+      reason: null,
     });
     assert.equal(readPortfolio(state).cashUSDCUnits, '980000000');
 
@@ -159,11 +246,18 @@ test('reusing an order ID for a different intent fails', () => {
 
 test('malformed intents and quotes throw an English error before any write', () => {
   const badIntents: Partial<FixtureIntent>[] = [
-    { orderId: '' }, { mint: '' }, { side: 'hold' as 'buy' }, { inputUnits: '1e6' },
-    { inputUnits: '0' }, { expectedNetOutputUnits: '-5' }, { decidedAt: 'yesterday' },
+    { orderId: '' },
+    { mint: '' },
+    { side: 'hold' as 'buy' },
+    { inputUnits: '1e6' },
+    { inputUnits: '0' },
+    { expectedNetOutputUnits: '-5' },
+    { decidedAt: 'yesterday' },
   ];
   const badQuotes: Partial<FixtureQuote>[] = [
-    { netOutputUnits: 'abc' }, { inputUnits: '' }, { feeUSDCUnits: '1.5' },
+    { netOutputUnits: 'abc' },
+    { inputUnits: '' },
+    { feeUSDCUnits: '1.5' },
   ];
   withPaperState((state) => {
     for (const change of badIntents) {

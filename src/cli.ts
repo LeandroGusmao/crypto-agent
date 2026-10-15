@@ -3,7 +3,10 @@ import { parseArgs } from 'node:util';
 import { parseUnits } from './core/units.ts';
 import { loadFixtureScenario, runFixtureReplay } from './paper/replay.ts';
 import {
-  buildPaperReport, renderPaperMarkdown, renderPortfolioSummary, renderReplaySummary,
+  buildPaperReport,
+  renderPaperMarkdown,
+  renderPortfolioSummary,
+  renderReplaySummary,
 } from './reporting/paper-report.ts';
 import type { PaperReport } from './reporting/paper-report.ts';
 import { openLocalState } from './state/local-state.ts';
@@ -13,7 +16,9 @@ const USDC_DECIMALS = 6;
 const INITIAL_PAPER_USDC = '1000';
 const INITIAL_PAPER_UNITS = parseUnits(INITIAL_PAPER_USDC, USDC_DECIMALS).toString();
 const DEFAULT_DATA_DIR = '.crypto-agent';
-const DEMO_SCENARIO = fileURLToPath(new URL('../fixtures/paper/offline-demo.json', import.meta.url));
+const DEMO_SCENARIO = fileURLToPath(
+  new URL('../fixtures/paper/offline-demo.json', import.meta.url),
+);
 const REPORT_FORMATS = ['json', 'markdown'] as const;
 
 const HELP = `Usage: crypto-agent <command> [options]
@@ -166,7 +171,7 @@ function main(argv: string[]): void {
       if (values.json && values.format !== undefined && values.format !== 'json') {
         throw new Error(`--json cannot be combined with --format ${values.format}.`);
       }
-      const format = values.json ? 'json' : values.format ?? 'markdown';
+      const format = values.json ? 'json' : (values.format ?? 'markdown');
       if (!(REPORT_FORMATS as readonly string[]).includes(format)) {
         throw new Error(`Unsupported report format "${format}". Use json or markdown.`);
       }

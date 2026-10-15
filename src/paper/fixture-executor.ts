@@ -2,7 +2,11 @@ import { parseUtcTimestamp } from '../core/time.ts';
 import type { LocalState } from '../state/local-state.ts';
 import { requireText, requireUnits } from '../core/validation.ts';
 import {
-  commitPaperFill, hashIntent, normalizeIntent, readOrderRecord, recordUnfilledOrder,
+  commitPaperFill,
+  hashIntent,
+  normalizeIntent,
+  readOrderRecord,
+  recordUnfilledOrder,
 } from './ledger.ts';
 import type { ExecutionOutcome, FixtureIntent, FixtureQuote, PaperFill } from './types.ts';
 
@@ -12,14 +16,21 @@ const MAX_QUOTE_AGE_MS = 15000;
 const SLIPPAGE_FLOOR_BPS = 9700n;
 
 function validateQuoteShape(quote: FixtureQuote): FixtureQuote {
-  if (typeof quote !== 'object' || quote === null) throw new Error('Invalid quote: must be an object');
+  if (typeof quote !== 'object' || quote === null)
+    throw new Error('Invalid quote: must be an object');
   return {
     source: requireText('quote', 'source', quote.source) as FixtureQuote['source'],
-    evidenceClass: requireText('quote', 'evidenceClass', quote.evidenceClass) as FixtureQuote['evidenceClass'],
+    evidenceClass: requireText(
+      'quote',
+      'evidenceClass',
+      quote.evidenceClass,
+    ) as FixtureQuote['evidenceClass'],
     mint: requireText('quote', 'mint', quote.mint),
     side: requireText('quote', 'side', quote.side) as FixtureQuote['side'],
     inputUnits: requireUnits('quote', 'inputUnits', quote.inputUnits, { positive: false }),
-    netOutputUnits: requireUnits('quote', 'netOutputUnits', quote.netOutputUnits, { positive: false }),
+    netOutputUnits: requireUnits('quote', 'netOutputUnits', quote.netOutputUnits, {
+      positive: false,
+    }),
     feeUSDCUnits: requireUnits('quote', 'feeUSDCUnits', quote.feeUSDCUnits, { positive: false }),
     observedAt: requireText('quote', 'observedAt', quote.observedAt),
   };
@@ -47,7 +58,10 @@ function rejectionReason(intent: FixtureIntent, quote: FixtureQuote, nowMs: numb
 
 // Fills an intent from a dated fixture quote, or records why it stayed unfilled.
 export function executeFixtureOrder(
-  state: LocalState, intent: FixtureIntent, quote: FixtureQuote | null, nowMs: number,
+  state: LocalState,
+  intent: FixtureIntent,
+  quote: FixtureQuote | null,
+  nowMs: number,
 ): ExecutionOutcome {
   const normalized = normalizeIntent(intent);
   const checkedQuote = quote === null ? null : validateQuoteShape(quote);

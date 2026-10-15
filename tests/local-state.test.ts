@@ -29,7 +29,9 @@ test('reopening preserves the original balance instead of reinitializing', () =>
     try {
       assert.deepEqual(initializePaperPortfolio(second, '5'), { created: false });
       assert.deepEqual(readPortfolio(second), {
-        mode: 'fixture', cashUSDCUnits: '1000000000', realizedPnlUSDCUnits: '0',
+        mode: 'fixture',
+        cashUSDCUnits: '1000000000',
+        realizedPnlUSDCUnits: '0',
       });
     } finally {
       second.close();
@@ -157,10 +159,13 @@ test('a reader refuses an outdated schema until a writer migrates it', () => {
     const reader = openLocalState(dir, 'read');
     try {
       assert.equal(readPortfolio(reader).cashUSDCUnits, '1000000000');
-      const tables = reader.db.prepare(
-        "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
-      ).all() as { name: string }[];
-      assert.deepEqual(tables.map((t) => t.name), ['fills', 'orders', 'portfolio', 'positions']);
+      const tables = reader.db
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
+        .all() as { name: string }[];
+      assert.deepEqual(
+        tables.map((t) => t.name),
+        ['fills', 'orders', 'portfolio', 'positions'],
+      );
     } finally {
       reader.close();
     }

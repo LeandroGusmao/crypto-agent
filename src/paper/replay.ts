@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { parseUtcTimestamp } from '../core/time.ts';
 import {
-  invalid, requireOneOf, requireSide, requireText, requireUnits, requireUtcTimestamp,
+  invalid,
+  requireOneOf,
+  requireSide,
+  requireText,
+  requireUnits,
+  requireUtcTimestamp,
 } from '../core/validation.ts';
 import { runInTransaction } from '../state/local-state.ts';
 import type { LocalState } from '../state/local-state.ts';
@@ -10,7 +15,8 @@ import { normalizeIntent } from './ledger.ts';
 import type { ExecutionOutcome, FixtureIntent, FixtureQuote } from './types.ts';
 
 export type FixtureScenario = {
-  mode: 'fixture'; id: string;
+  mode: 'fixture';
+  id: string;
   events: { intent: FixtureIntent; quote: FixtureQuote | null; now: string }[];
 };
 
@@ -30,7 +36,9 @@ function parseQuote(value: unknown): FixtureQuote | null {
     mint: requireText('quote', 'mint', value.mint),
     side: requireSide('quote', value.side),
     inputUnits: requireUnits('quote', 'inputUnits', value.inputUnits, { positive: true }),
-    netOutputUnits: requireUnits('quote', 'netOutputUnits', value.netOutputUnits, { positive: true }),
+    netOutputUnits: requireUnits('quote', 'netOutputUnits', value.netOutputUnits, {
+      positive: true,
+    }),
     feeUSDCUnits: requireUnits('quote', 'feeUSDCUnits', value.feeUSDCUnits, { positive: false }),
     observedAt: requireUtcTimestamp('quote', 'observedAt', value.observedAt),
   };
@@ -108,6 +116,9 @@ export function loadFixtureScenario(path: string): FixtureScenario {
 
 // Replays every event in one transaction, so a failing event leaves no partial results.
 export function runFixtureReplay(state: LocalState, scenario: FixtureScenario): ExecutionOutcome[] {
-  return runInTransaction(state.db, () => scenario.events.map((event) =>
-    executeFixtureOrder(state, event.intent, event.quote, Date.parse(event.now))));
+  return runInTransaction(state.db, () =>
+    scenario.events.map((event) =>
+      executeFixtureOrder(state, event.intent, event.quote, Date.parse(event.now)),
+    ),
+  );
 }

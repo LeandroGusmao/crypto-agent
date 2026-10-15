@@ -19,66 +19,105 @@ test('the loader returns a validated scenario with parsed events in order', () =
   withTempDir((dir) => {
     const scenario = loadFrom(dir, offlineScenario());
     assert.equal(scenario.id, 'offline-demo-v1');
-    assert.deepEqual(scenario.events.map((e) => e.intent.orderId), [
-      'offline-demo-v1:buy', 'offline-demo-v1:exit-unavailable', 'offline-demo-v1:sell',
-    ]);
+    assert.deepEqual(
+      scenario.events.map((e) => e.intent.orderId),
+      ['offline-demo-v1:buy', 'offline-demo-v1:exit-unavailable', 'offline-demo-v1:sell'],
+    );
     assert.equal(scenario.events[1]?.quote, null);
   });
 });
 
 test('the loader rejects malformed scenarios with a located English error', () => {
   const cases: { name: string; change: (s: Scenario) => void; error: RegExp }[] = [
-    { name: 'mode', change: (s) => { (s as { mode: string }).mode = 'live'; }, error: /mode must be "fixture"/ },
-    { name: 'id', change: (s) => { s.id = ''; }, error: /id must be a non-empty string/ },
-    { name: 'no events', change: (s) => { s.events = []; }, error: /events must be a non-empty array/ },
+    {
+      name: 'mode',
+      change: (s) => {
+        (s as { mode: string }).mode = 'live';
+      },
+      error: /mode must be "fixture"/,
+    },
+    {
+      name: 'id',
+      change: (s) => {
+        s.id = '';
+      },
+      error: /id must be a non-empty string/,
+    },
+    {
+      name: 'no events',
+      change: (s) => {
+        s.events = [];
+      },
+      error: /events must be a non-empty array/,
+    },
     {
       name: 'duplicate order ID',
-      change: (s) => { s.events[2]!.intent.orderId = 'offline-demo-v1:buy'; },
+      change: (s) => {
+        s.events[2]!.intent.orderId = 'offline-demo-v1:buy';
+      },
       error: /event 3: duplicate order ID "offline-demo-v1:buy"/,
     },
     {
       name: 'decision moves backward',
-      change: (s) => { s.events[1]!.intent.decidedAt = '2026-10-14T11:59:59.000Z'; },
+      change: (s) => {
+        s.events[1]!.intent.decidedAt = '2026-10-14T11:59:59.000Z';
+      },
       error: /event 2: decidedAt moves backward/,
     },
     {
       name: 'now moves backward',
-      change: (s) => { s.events[2]!.now = '2026-10-14T12:00:31.000Z'; },
+      change: (s) => {
+        s.events[2]!.now = '2026-10-14T12:00:31.000Z';
+      },
       error: /event 3: now moves backward/,
     },
     {
       name: 'observation moves backward',
-      change: (s) => { s.events[2]!.quote!.observedAt = '2026-10-14T12:00:01.000Z'; },
+      change: (s) => {
+        s.events[2]!.quote!.observedAt = '2026-10-14T12:00:01.000Z';
+      },
       error: /event 3: observedAt moves backward/,
     },
     {
       name: 'quote timestamp',
-      change: (s) => { s.events[0]!.quote!.observedAt = '2026-10-14 12:00:02'; },
+      change: (s) => {
+        s.events[0]!.quote!.observedAt = '2026-10-14 12:00:02';
+      },
       error: /event 1: Invalid quote: observedAt/,
     },
     {
       name: 'evidence class',
-      change: (s) => { s.events[0]!.quote!.evidenceClass = 'guess'; },
+      change: (s) => {
+        s.events[0]!.quote!.evidenceClass = 'guess';
+      },
       error: /event 1: Invalid quote: evidenceClass/,
     },
     {
       name: 'quote source',
-      change: (s) => { s.events[0]!.quote!.source = 'live'; },
+      change: (s) => {
+        s.events[0]!.quote!.source = 'live';
+      },
       error: /event 1: Invalid quote: source must be "fixture"/,
     },
     {
       name: 'zero net output',
-      change: (s) => { s.events[0]!.quote!.netOutputUnits = '0'; },
+      change: (s) => {
+        s.events[0]!.quote!.netOutputUnits = '0';
+      },
       error: /event 1: Invalid quote: netOutputUnits must be positive/,
     },
     {
       name: 'missing now',
-      change: (s) => { delete (s.events[0] as { now?: string }).now; },
+      change: (s) => {
+        delete (s.events[0] as { now?: string }).now;
+      },
       error: /event 1: now must be an ISO 8601 UTC timestamp/,
     },
     {
       name: 'exponent units',
-      change: (s) => { s.events[0]!.intent.inputUnits = '2e7'; },
+      change: (s) => {
+        s.events[0]!.intent.inputUnits = '2e7';
+      },
       error: /event 1: Invalid intent: inputUnits/,
     },
   ];
@@ -102,7 +141,11 @@ test('replay returns each outcome in event order', () => {
     withPaperState((state) => {
       assert.deepEqual(runFixtureReplay(state, scenario), [
         { orderId: 'offline-demo-v1:buy', status: 'filled', reason: null },
-        { orderId: 'offline-demo-v1:exit-unavailable', status: 'unfilled', reason: 'quote_unavailable' },
+        {
+          orderId: 'offline-demo-v1:exit-unavailable',
+          status: 'unfilled',
+          reason: 'quote_unavailable',
+        },
         { orderId: 'offline-demo-v1:sell', status: 'filled', reason: null },
       ]);
     });
@@ -129,20 +172,23 @@ test('the Markdown report for the completed demo matches the documented layout',
     const scenario = loadFrom(dir, offlineScenario());
     withPaperState((state) => {
       runFixtureReplay(state, scenario);
-      assert.equal(renderPaperMarkdown(buildPaperReport(state)), [
-        '# Paper Trading Report',
-        '',
-        'Mode: fixture',
-        'Cash: 1001.8 USDC',
-        'Realized paper PnL: 1.8 USDC',
-        'Modeled fills: 2',
-        'Unfilled orders: 1',
-        'Open positions: 0',
-        'Positions without a verified exit value: 0',
-        '',
-        'This report uses synthetic fixtures, not live market data or real trades.',
-        '',
-      ].join('\n'));
+      assert.equal(
+        renderPaperMarkdown(buildPaperReport(state)),
+        [
+          '# Paper Trading Report',
+          '',
+          'Mode: fixture',
+          'Cash: 1001.8 USDC',
+          'Realized paper PnL: 1.8 USDC',
+          'Modeled fills: 2',
+          'Unfilled orders: 1',
+          'Open positions: 0',
+          'Positions without a verified exit value: 0',
+          '',
+          'This report uses synthetic fixtures, not live market data or real trades.',
+          '',
+        ].join('\n'),
+      );
     });
   });
 });

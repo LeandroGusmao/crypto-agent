@@ -13,7 +13,10 @@ export function requireText(kind: string, field: string, value: unknown): string
 
 // Returns the canonical form of a nonnegative integer unit string.
 export function requireUnits(
-  kind: string, field: string, value: unknown, { positive }: { positive: boolean },
+  kind: string,
+  field: string,
+  value: unknown,
+  { positive }: { positive: boolean },
 ): string {
   if (typeof value !== 'string' || !/^\d+$/.test(value)) {
     throw invalid(kind, `${field} must be an integer unit string`);
@@ -24,7 +27,10 @@ export function requireUnits(
 }
 
 export function requireOneOf<T extends string>(
-  kind: string, field: string, value: unknown, allowed: readonly T[],
+  kind: string,
+  field: string,
+  value: unknown,
+  allowed: readonly T[],
 ): T {
   if (!allowed.includes(value as T)) {
     throw invalid(kind, `${field} must be one of ${allowed.map((a) => `"${a}"`).join(', ')}`);
