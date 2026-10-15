@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # The npm ecosystem also covers pnpm projects.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Waits a week after each release before proposing it: limits exposure to
+    # compromised packages and stays clear of pnpm's minimum release age gate.
+    cooldown:
+      default-days: 7
+    groups:
+      dev-dependencies:
+        update-types: [minor, patch]
+    ignore:
+      # Node.js is pinned to major 24 by package.json#engines.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        update-types: [minor, patch]

@@ -1,0 +1,142 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "rules": {
+    "complexity": ["error", 15],
+    "curly": ["error", "multi-line"],
+    "eqeqeq": "error",
+    "max-depth": ["error", 3],
+    "max-lines-per-function": [
+      "error",
+      { "max": 60, "skipBlankLines": true, "skipComments": true }
+    ],
+    "max-params": ["error", 4],
+    "no-nested-ternary": "error",
+    "prefer-const": "error",
+    "import/no-cycle": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "unicorn/prefer-node-protocol": "error"
+  },
+  "overrides": [
+    {
+      "files": ["tests/**"],
+      "rules": {
+        "max-lines-per-function": "off",
+        "typescript/no-non-null-assertion": "off"
+      }
+    },
+    {
+      "files": ["src/core/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../state/*", "../paper/*", "../reporting/*", "../cli.ts"],
+                "message": "core/ is the bottom layer and may not import other layers."
+              },
+              {
+                "group": [
+                  "node:fs",
+                  "node:fs/*",
+                  "node:path",
+                  "node:sqlite",
+                  "node:child_process",
+                  "node:net",
+                  "node:http",
+                  "node:https"
+                ],
+                "message": "core/ is pure and may not perform I/O."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/state/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../paper/*", "../reporting/*", "../cli.ts"],
+                "message": "state/ may import only core/."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/paper/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["../reporting/*", "../cli.ts"],
+                "message": "paper/ may import only state/ and core/."
+              },
+              {
+                "group": ["node:sqlite"],
+                "message": "Only state/ opens the database."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/reporting/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "../state/local-state.ts",
+                "importNames": ["runInTransaction"],
+                "message": "reporting/ is read-only and never writes."
+              }
+            ],
+            "patterns": [
+              {
+                "group": ["../cli.ts"],
+                "message": "reporting/ may not import the CLI."
+              },
+              {
+                "group": ["node:sqlite"],
+                "message": "Only state/ opens the database."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/cli.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["node:sqlite"],
+                "message": "Only state/ opens the database."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
