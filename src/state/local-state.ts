@@ -105,7 +105,9 @@ function acquireWriterLock(lockPath: string): string {
     fd = openSync(lockPath, 'wx');
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
-      throw new Error(`Database is already in use by another writer (lock file: ${lockPath})`);
+      throw new Error(`Database is already in use by another writer (lock file: ${lockPath})`, {
+        cause: error,
+      });
     }
     throw error;
   }

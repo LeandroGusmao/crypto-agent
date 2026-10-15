@@ -107,7 +107,9 @@ export function loadFixtureScenario(path: string): FixtureScenario {
     try {
       return parseEvent(value);
     } catch (error) {
-      throw new Error(`Invalid fixture event ${index + 1}: ${(error as Error).message}`);
+      throw new Error(`Invalid fixture event ${index + 1}: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   });
   assertArrivalOrder(events);

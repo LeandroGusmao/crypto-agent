@@ -135,6 +135,19 @@ test('the loader rejects malformed scenarios with a located English error', () =
   });
 });
 
+test('a rejected event keeps the underlying validation error as its cause', () => {
+  withTempDir((dir) => {
+    const scenario = offlineScenario();
+    scenario.events[0]!.intent.inputUnits = '2e7';
+    assert.throws(
+      () => loadFrom(dir, scenario),
+      (error: Error) =>
+        error.cause instanceof Error &&
+        error.cause.message.startsWith('Invalid intent: inputUnits'),
+    );
+  });
+});
+
 test('replay returns each outcome in event order', () => {
   withTempDir((dir) => {
     const scenario = loadFrom(dir, offlineScenario());

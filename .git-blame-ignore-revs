@@ -1,0 +1,5 @@
+# Mechanical reformats that git blame should skip.
+# Local use: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# style: format the codebase with oxfmt
+cb8087772717e2c1a3a96f747c97f384542e116b

@@ -92,6 +92,87 @@ type PositionRow = {
   status: 'open' | 'closed';
 };
 
+type Balances = { cash: bigint; realizedPnl: bigint };
+
+// Opens the mint's position and returns the balances after the USDC debit.
+function applyBuy(
+  state: LocalState,
+  fill: PaperFill,
+  position: PositionRow | undefined,
+  balances: Balances,
+): Balances {
+  const usdc = BigInt(fill.usdcUnits);
+  if (balances.cash < usdc) throw new Error('Insufficient paper cash for this buy');
+  if (position?.status === 'open') {
+    throw new Error(`A position is already open for mint ${fill.mint}`);
+  }
+  state.db
+    .prepare(
+      `INSERT INTO positions (mint, token_units, cost_basis_usdc_units, status)
+       VALUES (?, ?, ?, 'open')
+       ON CONFLICT (mint) DO UPDATE SET token_units = excluded.token_units,
+         cost_basis_usdc_units = excluded.cost_basis_usdc_units, status = 'open'`,
+    )
+    .run(fill.mint, fill.tokenUnits, fill.usdcUnits);
+  return { cash: balances.cash - usdc, realizedPnl: balances.realizedPnl };
+}
+
+// Closes the whole position and returns the balances after the USDC credit.
+function applySell(
+  state: LocalState,
+  fill: PaperFill,
+  position: PositionRow | undefined,
+  balances: Balances,
+): Balances {
+  if (position?.status !== 'open') {
+    throw new Error(`No open position for mint ${fill.mint}`);
+  }
+  if (position.token_units !== fill.tokenUnits) {
+    throw new Error('Sell quantity must equal the open position; partial exits are not supported');
+  }
+  const usdc = BigInt(fill.usdcUnits);
+  state.db
+    .prepare(
+      `UPDATE positions SET token_units = '0', cost_basis_usdc_units = '0', status = 'closed'
+       WHERE mint = ?`,
+    )
+    .run(fill.mint);
+  return {
+    cash: balances.cash + usdc,
+    realizedPnl: balances.realizedPnl + usdc - BigInt(position.cost_basis_usdc_units),
+  };
+}
+
+// Appends the filled order and its fill to the journal.
+function insertFilledOrder(
+  state: LocalState,
+  fill: PaperFill,
+  payloadHash: string,
+  intentHash: string | null,
+): void {
+  state.db
+    .prepare(
+      `INSERT INTO orders (order_id, payload_hash, intent_hash, status, reason, payload_json)
+       VALUES (?, ?, ?, 'filled', NULL, ?)`,
+    )
+    .run(fill.orderId, payloadHash, intentHash, JSON.stringify(fill));
+  state.db
+    .prepare(
+      `INSERT INTO fills (order_id, mint, side, token_units, usdc_units, fee_usdc_units, observed_at, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      fill.orderId,
+      fill.mint,
+      fill.side,
+      fill.tokenUnits,
+      fill.usdcUnits,
+      fill.feeUSDCUnits,
+      fill.observedAt,
+      fill.source,
+    );
+}
+
 // Applies a modeled fill atomically; an identical replay of a filled order is a no-op.
 export function commitPaperFill(
   state: LocalState,
@@ -128,63 +209,24 @@ export function commitPaperFill(
     }
 
     const portfolio = readPortfolio(state);
-    let cash = BigInt(portfolio.cashUSDCUnits);
-    let realizedPnl = BigInt(portfolio.realizedPnlUSDCUnits);
-    const usdc = BigInt(normalized.usdcUnits);
+    const balances: Balances = {
+      cash: BigInt(portfolio.cashUSDCUnits),
+      realizedPnl: BigInt(portfolio.realizedPnlUSDCUnits),
+    };
     const position = db
       .prepare('SELECT token_units, cost_basis_usdc_units, status FROM positions WHERE mint = ?')
       .get(normalized.mint) as PositionRow | undefined;
 
     // Fees are already included in the buy debit and the sell net credit.
-    if (normalized.side === 'buy') {
-      if (cash < usdc) throw new Error('Insufficient paper cash for this buy');
-      if (position?.status === 'open') {
-        throw new Error(`A position is already open for mint ${normalized.mint}`);
-      }
-      cash -= usdc;
-      db.prepare(
-        `INSERT INTO positions (mint, token_units, cost_basis_usdc_units, status)
-         VALUES (?, ?, ?, 'open')
-         ON CONFLICT (mint) DO UPDATE SET token_units = excluded.token_units,
-           cost_basis_usdc_units = excluded.cost_basis_usdc_units, status = 'open'`,
-      ).run(normalized.mint, normalized.tokenUnits, normalized.usdcUnits);
-    } else {
-      if (position?.status !== 'open') {
-        throw new Error(`No open position for mint ${normalized.mint}`);
-      }
-      if (position.token_units !== normalized.tokenUnits) {
-        throw new Error(
-          'Sell quantity must equal the open position; partial exits are not supported',
-        );
-      }
-      cash += usdc;
-      realizedPnl += usdc - BigInt(position.cost_basis_usdc_units);
-      db.prepare(
-        `UPDATE positions SET token_units = '0', cost_basis_usdc_units = '0', status = 'closed'
-         WHERE mint = ?`,
-      ).run(normalized.mint);
-    }
+    const next =
+      normalized.side === 'buy'
+        ? applyBuy(state, normalized, position, balances)
+        : applySell(state, normalized, position, balances);
 
-    db.prepare(
-      `INSERT INTO orders (order_id, payload_hash, intent_hash, status, reason, payload_json)
-       VALUES (?, ?, ?, 'filled', NULL, ?)`,
-    ).run(normalized.orderId, payloadHash, intentHash, JSON.stringify(normalized));
-    db.prepare(
-      `INSERT INTO fills (order_id, mint, side, token_units, usdc_units, fee_usdc_units, observed_at, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(
-      normalized.orderId,
-      normalized.mint,
-      normalized.side,
-      normalized.tokenUnits,
-      normalized.usdcUnits,
-      normalized.feeUSDCUnits,
-      normalized.observedAt,
-      normalized.source,
-    );
+    insertFilledOrder(state, normalized, payloadHash, intentHash);
     db.prepare(
       'UPDATE portfolio SET cash_usdc_units = ?, realized_pnl_usdc_units = ? WHERE id = 1',
-    ).run(cash.toString(), realizedPnl.toString());
+    ).run(next.cash.toString(), next.realizedPnl.toString());
     return { applied: true };
   });
 }

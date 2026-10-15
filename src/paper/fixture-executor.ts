@@ -16,8 +16,9 @@ const MAX_QUOTE_AGE_MS = 15000;
 const SLIPPAGE_FLOOR_BPS = 9700n;
 
 function validateQuoteShape(quote: FixtureQuote): FixtureQuote {
-  if (typeof quote !== 'object' || quote === null)
+  if (typeof quote !== 'object' || quote === null) {
     throw new Error('Invalid quote: must be an object');
+  }
   return {
     source: requireText('quote', 'source', quote.source) as FixtureQuote['source'],
     evidenceClass: requireText(

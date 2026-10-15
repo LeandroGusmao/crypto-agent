@@ -20,6 +20,7 @@ const DEMO_SCENARIO = fileURLToPath(
   new URL('../fixtures/paper/offline-demo.json', import.meta.url),
 );
 const REPORT_FORMATS = ['json', 'markdown'] as const;
+type ReportFormat = (typeof REPORT_FORMATS)[number];
 
 const HELP = `Usage: crypto-agent <command> [options]
 
@@ -104,7 +105,7 @@ function runScenario(dataDir: string, scenarioPath: string, json: boolean): void
   }
 }
 
-function runReport(dataDir: string, format: (typeof REPORT_FORMATS)[number]): void {
+function runReport(dataDir: string, format: ReportFormat): void {
   const state = openLocalState(dataDir, 'read');
   try {
     const report = buildPaperReport(state);
@@ -113,6 +114,38 @@ function runReport(dataDir: string, format: (typeof REPORT_FORMATS)[number]): vo
   } finally {
     state.close();
   }
+}
+
+// Returns the single command, rejecting extra arguments and options meant for another command.
+function requireCommand(
+  positionals: string[],
+  options: { fixture?: string; format?: string },
+): string {
+  const [command, ...extra] = positionals;
+  if (command === undefined) {
+    throw new Error('Missing command. Run with --help to list commands.');
+  }
+  if (extra.length > 0) {
+    throw new Error(`Unexpected argument "${extra[0]}". Run with --help for usage.`);
+  }
+  if (options.fixture !== undefined && command !== 'replay') {
+    throw new Error('Option --fixture is only valid with replay.');
+  }
+  if (options.format !== undefined && command !== 'report') {
+    throw new Error('Option --format is only valid with report.');
+  }
+  return command;
+}
+
+function resolveReportFormat(json: boolean, format: string | undefined): ReportFormat {
+  if (json && format !== undefined && format !== 'json') {
+    throw new Error(`--json cannot be combined with --format ${format}.`);
+  }
+  const resolved = json ? 'json' : (format ?? 'markdown');
+  if (!(REPORT_FORMATS as readonly string[]).includes(resolved)) {
+    throw new Error(`Unsupported report format "${resolved}". Use json or markdown.`);
+  }
+  return resolved as ReportFormat;
 }
 
 function main(argv: string[]): void {
@@ -136,20 +169,7 @@ function main(argv: string[]): void {
     return;
   }
 
-  const [command, ...extra] = positionals;
-  if (command === undefined) {
-    throw new Error('Missing command. Run with --help to list commands.');
-  }
-  if (extra.length > 0) {
-    throw new Error(`Unexpected argument "${extra[0]}". Run with --help for usage.`);
-  }
-  if (values.fixture !== undefined && command !== 'replay') {
-    throw new Error('Option --fixture is only valid with replay.');
-  }
-  if (values.format !== undefined && command !== 'report') {
-    throw new Error('Option --format is only valid with report.');
-  }
-
+  const command = requireCommand(positionals, values);
   const dataDir = values['data-dir'];
   switch (command) {
     case 'init':
@@ -167,17 +187,9 @@ function main(argv: string[]): void {
       }
       runScenario(dataDir, values.fixture, values.json);
       return;
-    case 'report': {
-      if (values.json && values.format !== undefined && values.format !== 'json') {
-        throw new Error(`--json cannot be combined with --format ${values.format}.`);
-      }
-      const format = values.json ? 'json' : (values.format ?? 'markdown');
-      if (!(REPORT_FORMATS as readonly string[]).includes(format)) {
-        throw new Error(`Unsupported report format "${format}". Use json or markdown.`);
-      }
-      runReport(dataDir, format as (typeof REPORT_FORMATS)[number]);
+    case 'report':
+      runReport(dataDir, resolveReportFormat(values.json, values.format));
       return;
-    }
     default:
       throw new Error(`Unknown command "${command}". Run with --help to list commands.`);
   }

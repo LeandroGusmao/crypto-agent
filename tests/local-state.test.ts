@@ -52,6 +52,20 @@ test('a second writer is rejected while the first is alive', () => {
   });
 });
 
+test('a rejected writer keeps the lock file error as its cause', () => {
+  withTempDir((dir) => {
+    const writer = openLocalState(dir, 'write');
+    try {
+      assert.throws(
+        () => openLocalState(dir, 'write'),
+        (error: Error) => (error.cause as NodeJS.ErrnoException | undefined)?.code === 'EEXIST',
+      );
+    } finally {
+      writer.close();
+    }
+  });
+});
+
 test('closing a writer leaves a lock owned by someone else in place', () => {
   withTempDir((dir) => {
     const writer = openLocalState(dir, 'write');
